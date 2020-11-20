@@ -79,7 +79,7 @@ if __name__ == '__main__':
     img_size = 100
     npimg = np.array(img)
     patches = crop(npimg, img_size)
-    print(patches.shape)
+    # print(patches.shape)
 
     # t = torch.tensor(np.transpose(imgs, (0, 3, 1, 2)))
     # grid = utils.make_grid(t, nrow=npimg.shape[1] // 50, padding=0).numpy()
@@ -105,13 +105,13 @@ if __name__ == '__main__':
         device = torch.device('cpu')
     resnet = 'resnet50'
     projection_dim = 64
-    model_path = "models/checkpoint_100.tar"
+    # model_path = "models/checkpoint_100.tar"
 
     encoder = get_resnet(resnet, pretrained=False)
     n_features = encoder.fc.in_features
 
     simclr_model = SimCLR(encoder, n_features, projection_dim)
-    simclr_model.load_state_dict(torch.load(model_path, map_location=device))
+    # simclr_model.load_state_dict(torch.load(model_path, map_location=device))
     simclr_model = simclr_model.to(device)
 
     f = get_features(simclr_model, device, np.transpose(patches, (0, 3, 1, 2)))
