@@ -1,14 +1,17 @@
-import torch.nn.functional as F
-import torch.nn as nn
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
-# two layer MLP to get the consistency score for each pair of patches
-class FeatureModel(nn.Module):
-    def __init__(self, exif_dim):
-        super(FeatureModel, self).__init__()
-        self.layer1 = nn.Linear(exif_dim, exif_dim * 2)
-        self.layer2 = nn.Linear(exif_dim * 2, 1)
+class ConsistencyModel(nn.Module):
+    """
+    Consistency Model
+    """
+
+    def __init__(self, feature_dim):
+        super(ConsistencyModel, self).__init__()
+        self.layer1 = nn.Linear(feature_dim, feature_dim * 2)
+        self.layer2 = nn.Linear(feature_dim * 2, 1)
 
     def forward(self, x):
         x = self.layer1(x)

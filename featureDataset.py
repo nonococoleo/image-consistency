@@ -1,32 +1,43 @@
-import random
-import torch
-from torch.utils.data import Dataset
-from PIL import Image
-import torchvision
 import os
+import random
 import numpy as np
+from PIL import Image
+import torch
+import torchvision
+from torch.utils.data import Dataset
 
 
-# use number of different bit in mask to represent score
-def getConsistencyScore(p1, p2, size):
-    temp = torch.sum(abs(p1 - p2)) / size
-    return temp
+def get_consistency_score(p1, p2, size):
+    """
+    use number of different bit in mask to represent score
+    :param p1: patch 1
+    :param p2: patch 2
+    :param size: patch size
+    :return: Consistency Score
+    """
+
+    return torch.sum(abs(p1 - p2)) / size
 
 
 class FeatureDataset(Dataset):
-    def __init__(self, root_dir, num, size=20):
+    """
+    dataset for feature model
+    """
+
+    def __init__(self, root_dir, num_pairs, patch_size):
         self.root_dir = root_dir
-        self.size = size
+        self.size = patch_size
         self.pairs = []
+
         for i in os.listdir(self.root_dir + '/images')[:2]:
             image = Image.open(os.path.join(self.root_dir + '/images/' + i))
-            height, width= np.array(image).shape[:2]
-            for j in range(num):
+            height, width = np.array(image).shape[:2]
+            for j in range(num_pairs):
                 # random pick two left top corner
-                x1 = random.randint(0, height - size)
-                y1 = random.randint(0, width - size)
-                x2 = random.randint(0, height - size)
-                y2 = random.randint(0, width - size)
+                x1 = random.randint(0, height - patch_size)
+                y1 = random.randint(0, width - patch_size)
+                x2 = random.randint(0, height - patch_size)
+                y2 = random.randint(0, width - patch_size)
                 self.pairs.append((i.split('.')[0], (x1, y1), (x2, y2)))
 
     def __len__(self):
@@ -49,5 +60,5 @@ class FeatureDataset(Dataset):
         p2 = image[:3, x2:x2 + self.size, y2:y2 + self.size]
         m2 = mask[:, x2:x2 + self.size, y2:y2 + self.size]
 
-        sample = {'p1': p1, 'p2': p2, 'score': getConsistencyScore(m1, m2, self.size ** 2)}
+        sample = {'p1': p1, 'p2': p2, 'score': get_consistency_score(m1, m2, self.size ** 2)}
         return sample

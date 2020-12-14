@@ -3,6 +3,10 @@ import torch.nn as nn
 
 
 class CompareExifModel(nn.Module):
+    """
+    Comparison model
+    """
+
     def __init__(self, encoder, n_features, projection_dim):
         super(CompareExifModel, self).__init__()
 

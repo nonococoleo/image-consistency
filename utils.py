@@ -1,13 +1,19 @@
-import torchvision
 import os
 import torch
+import torchvision
 import numpy as np
-import itertools
 from compareExifModel import CompareExifModel
 from predictExifModel import PredictExifModel
 
 
 def get_resnet(name, pretrained=False):
+    """
+    get resnet layer
+    :param name: type of resnet
+    :param pretrained: whether use pretrained model
+    :return: resnet layer
+    """
+
     resnets = {
         "resnet18": torchvision.models.resnet18(pretrained=pretrained),
         "resnet50": torchvision.models.resnet50(pretrained=pretrained),
@@ -17,8 +23,16 @@ def get_resnet(name, pretrained=False):
     return resnets[name]
 
 
-def save_model(model_path, model, current_epoch):
-    out = os.path.join(model_path, "checkpoint_{}.tar".format(current_epoch))
+def save_model(model, model_path, epoch):
+    """
+    save given model to target path
+    :param model: the model object
+    :param model_path: target file path
+    :param epoch: training epoch
+    :return: None
+    """
+
+    out = os.path.join(model_path, "checkpoint_{}.tar".format(epoch))
 
     if isinstance(model, torch.nn.DataParallel):
         torch.save(model.module.state_dict(), out)
@@ -26,17 +40,36 @@ def save_model(model_path, model, current_epoch):
         torch.save(model.state_dict(), out)
 
 
-# compare one patch with all other patches
-def evaluatePatch(features, eval_model, device):
+def get_consistency_score(features, consistency_model, device):
+    """
+    calculate consistency score of given feature vectors
+    :param features: feature vectors between patch pairs
+    :param consistency_model: the consistency model
+    :param device: device type
+    :return: list of consistency scores
+    """
+
     x = torch.stack(features).to(device)
     with torch.no_grad():
-        output = eval_model(x)
+        output = consistency_model(x)
     output = output.detach()
     return output.sum().tolist()
 
 
 # calculate consistency map
-def getConsistencyMap(image, size, exif_model, eval_model, device):
+def get_consistency_map(image, size, feature_model, consistency_model, device):
+    """
+    calculate consistency map of given image by calculate every patch split by the image
+    :param image: the image object
+    :param size: patch edge size
+    :param feature_model: the feature model
+    :param consistency_model: the consistency model
+    :param device: device type
+    :return: consistency map of given image
+    """
+
+    import itertools
+
     height = image.shape[1]
     width = image.shape[2]
     patches = []
@@ -57,12 +90,10 @@ def getConsistencyMap(image, size, exif_model, eval_model, device):
     for x, y in patch_pairs:
         x = torch.stack((x,)).to(device)
         y = torch.stack((y,)).to(device)
-        with torch.no_grad():
-            output = exif_model(x, y)
-        output = output.detach()
+        output = get_feature(feature_model, x, y)
         feature_vector.extend(output)
         if len(feature_vector) == length:
-            score = evaluatePatch(feature_vector, eval_model, device)
+            score = get_consistency_score(feature_vector, consistency_model, device)
             counter += 1
             print("patch %d: %f" % (counter, score), flush=True)
             results.append(score)
@@ -72,47 +103,49 @@ def getConsistencyMap(image, size, exif_model, eval_model, device):
     return consistency_map
 
 
-def get_output(model, x, y):
+def get_feature(feature_model, x, y):
+    """
+    get the feature vector of given patch pair
+    :param feature_model: the feature model
+    :param x: patch x
+    :param y: patch y
+    :return: feature vector
+    """
+
     with torch.no_grad():
-        if type(model) == PredictExifModel:
-            output_x = model(x)
-            output_y = model(y)
+        if type(feature_model) == PredictExifModel:
+            output_x = feature_model(x)
+            output_y = feature_model(y)
             output = (torch.argmax(output_x, 1) == torch.argmax(output_y, 1)).float()
-        elif type(model) == CompareExifModel:
-            output = model(x, y)
-            output = output.detach()
+        elif type(feature_model) == CompareExifModel:
+            output = feature_model(x, y)
         else:
             raise NotImplemented
-    return output
+    return output.detach()
 
 
-def get_features(model, loader, device):
-    feature_vector = []
-    labels_vector = []
+def get_data(model, loader, device):
+    """
+    get feature and label array of all patch pairs
+    :param model: the feature model
+    :param loader: patch pairs dataloader
+    :param device: device type
+    :return: feature and label array
+    """
+    features = []
+    labels = []
     for (step, ((x, y), label)) in enumerate(loader):
         x = x.to(device)
         y = y.to(device)
-        label = label.to(device)
-        output = get_output(model, x, y)
+        output = get_feature(model, x, y)
 
-        feature_vector.extend(output.cpu().numpy())
-        labels_vector.extend(label.cpu().numpy())
+        features.extend(output.cpu().numpy())
+        labels.extend(label.cpu().numpy())
 
         if step % 20 == 0:
             print(f"Step [{step}/{len(loader)}]\t Computing features...", flush=True)
 
-    feature_vector = np.array(feature_vector)
-    labels_vector = np.array(labels_vector)
-    print("Features shape {}".format(feature_vector.shape))
-    return feature_vector, labels_vector
-
-
-def create_data_loaders_from_arrays(X_train, y_train, batch_size):
-    train = torch.utils.data.TensorDataset(
-        torch.from_numpy(X_train), torch.from_numpy(y_train)
-    )
-    train_loader = torch.utils.data.DataLoader(
-        train, batch_size=batch_size, shuffle=False
-    )
-
-    return train_loader
+    features = torch.tensor(features)
+    labels = torch.tensor(labels)
+    print("Features shape {}".format(features.shape))
+    return features, labels

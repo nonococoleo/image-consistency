@@ -1,11 +1,16 @@
-from featureDataset import FeatureDataset
-from featureModel import FeatureModel
-import torch.nn as nn
-from PIL import Image
 from utils import *
+import torch.nn as nn
+from featureModel import ConsistencyModel
+from featureDataset import FeatureDataset
 
 
 def collate_fn(batch):
+    """
+    collate function for feature dataset
+    :param batch: data batch
+    :return: organized data
+    """
+
     images_a = []
     images_b = []
     labels = []
@@ -17,6 +22,16 @@ def collate_fn(batch):
 
 
 def train(device, loader, model, criterion, optimizer):
+    """
+    train the model for one epoch
+    :param device: device type
+    :param loader: dataloader
+    :param model: the model
+    :param criterion: loss function
+    :param optimizer: the optimizer
+    :return: training loss
+    """
+
     loss_epoch = 0
     model.train()
     for step, (x, score) in enumerate(loader):
@@ -38,13 +53,6 @@ def train(device, loader, model, criterion, optimizer):
     return loss_epoch
 
 
-def evaluate(device, exif_model, eval_model, image, size, threshold):
-    consistency_map = getConsistencyMap(image, size, exif_model, eval_model, device)
-    #     if_sliced = ifSliced(consistency_map, threshold)
-
-    return consistency_map
-
-
 if __name__ == '__main__':
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
@@ -54,26 +62,26 @@ if __name__ == '__main__':
     model_type = "predict"
     # model_type = "compare"
 
-    exif_epoch = 300
-    exif_model_folder = "exif_model"
-    exif_model_path = os.path.join(exif_model_folder, "checkpoint_{}.tar".format(exif_epoch))
+    feature_epoch = 300
+    feature_model_folder = "feature_model"
+    feature_model_path = os.path.join(feature_model_folder, "checkpoint_{}.tar".format(feature_epoch))
     encoder = get_resnet('resnet50', pretrained=True)
     n_features = encoder.fc.out_features  # get dimensions of fc layer
-    exif_dim = 6
+
+    feature_dim = 6
     if model_type == "compare":
-        exif_model = CompareExifModel(encoder, n_features, exif_dim)
+        feature_model = CompareExifModel(encoder, n_features, feature_dim)
     elif model_type == "predict":
-        exif_model = PredictExifModel(encoder, n_features, 6, 6, 10)
+        feature_model = PredictExifModel(encoder, n_features, feature_dim, partitions=10)
     else:
         raise NotImplemented
-    # exif_model.load_state_dict(torch.load(exif_model_path, map_location=device))
-    exif_model.to(device)
-    exif_model.eval()
+    feature_model.load_state_dict(torch.load(feature_model_path, map_location=device))
+    feature_model.to(device)
+    feature_model.eval()
 
-    patch_size = 128
-    train_dataset = FeatureDataset('datasets/label_in_wild', 2, patch_size)
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
+    feature_dataset = FeatureDataset('datasets/label_in_wild', num_pairs=2, patch_size=128)
+    feature_loader = torch.utils.data.DataLoader(
+        feature_dataset,
         shuffle=True,
         batch_size=64,
         collate_fn=collate_fn,
@@ -81,34 +89,26 @@ if __name__ == '__main__':
         pin_memory=True
     )
 
-    train_X, train_y = get_features(exif_model, train_loader, device)
-    arr_train_loader = create_data_loaders_from_arrays(train_X, train_y, 128)
+    train_X, train_y = get_data(feature_model, feature_loader, device)
+    train_dataset = torch.utils.data.TensorDataset(train_X, train_y)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, shuffle=False)
 
-    eval_epoch = 300
-    eval_model_folder = "eval_model"
-    eval_model_path = os.path.join(eval_model_folder, "checkpoint_{}.tar".format(eval_epoch))
-    eval_model = FeatureModel(exif_dim)
-    # eval_model.load_state_dict(torch.load(eval_model_path, map_location=device))
-    eval_model.to(device)
-    optimizer = torch.optim.Adam(eval_model.parameters(), lr=1e-4)
+    consistency_epoch = 300
+    consistency_model_folder = "consistency_model"
+    consistency_model_path = os.path.join(consistency_model_folder, "checkpoint_{}.tar".format(consistency_epoch))
+    consistency_model = ConsistencyModel(feature_dim)
+    # consistency_model.load_state_dict(torch.load(consistency_model_path, map_location=device))
+    consistency_model.to(device)
+    optimizer = torch.optim.Adam(consistency_model.parameters(), lr=1e-4)
     criterion = nn.BCELoss()
 
     logistic_epochs = 300
     for epoch in range(1, logistic_epochs + 1):
         lr = optimizer.param_groups[0]["lr"]
-        loss_epoch = train(device, arr_train_loader, eval_model, criterion, optimizer)
+        loss_epoch = train(device, train_loader, consistency_model, criterion, optimizer)
 
         if epoch % 10 == 0:
-            save_model(eval_model_folder, eval_model, epoch)
+            save_model(consistency_model, consistency_model_folder, epoch)
 
         print(f"Epoch [{epoch}/{logistic_epochs}]\t Loss: {loss_epoch / len(train_loader)}\t lr: {round(lr, 5)}",
               flush=True)
-
-    # Evaluating
-    threshold = 0.5
-    eval_model.eval()
-
-    image = Image.open(os.path.join('datasets/label_in_wild/images/2251.jpg'))
-    image = torchvision.transforms.ToTensor()(image)
-
-    print(evaluate(device, exif_model, eval_model, image, patch_size, threshold))

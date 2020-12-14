@@ -1,44 +1,34 @@
 import os
 import random
-import torch
-import torchvision
-from torch.utils.data import Dataset
 import pandas as pd
 from PIL import Image
-
-
-class RandomCropTransforms:
-    def __init__(self, size):
-        self.train_transform = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.RandomCrop(size=size),
-                torchvision.transforms.ToTensor(),
-                # torchvision.transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-            ]
-        )
-
-    def __call__(self, x):
-        return self.train_transform(x)
+import torch
+from torch.utils.data import Dataset
+from RandomCropTransformer import RandomCropTransformer
 
 
 class CompareExifDataset(Dataset):
-    def __init__(self, csv_file, root_dir, num, img_size=128):
+    """
+    Dataset for CompareExifModel
+    """
+
+    def __init__(self, csv_file, root_dir, num_pairs, patch_size):
         self.exif_info = pd.read_csv(csv_file)
         self.root_dir = root_dir
-        self.transform = RandomCropTransforms(img_size)
+        self.transformer = RandomCropTransformer(patch_size)
 
         self.patches = []
         length = range(len(self.exif_info))
         for i in length:
             img_name = os.path.join(self.root_dir, self.exif_info.iloc[i, 0])
-            self.patches.append(self.transform(Image.open(img_name).convert('RGB')))
+            self.patches.append(self.transformer(Image.open(img_name).convert('RGB')))
         print("finish generating patches")
 
         self.pairs = []
         self.labels = []
         # self.pairs = [(i, i) for i in length]
         # self.labels = [torch.ones(6, dtype=torch.float32) for _ in length]
-        while len(self.pairs) < num:
+        while len(self.pairs) < num_pairs:
             a = random.choice(length)
             b = random.choice(length)
             exif_a = self.exif_info.iloc[a, 1:]

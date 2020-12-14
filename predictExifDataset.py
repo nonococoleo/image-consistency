@@ -1,34 +1,26 @@
-import torch
-import torchvision
-from torch.utils.data import Dataset
 import os
 import pandas as pd
 from PIL import Image
-
-
-class TransformsSimCLR:
-    def __init__(self, size):
-        self.train_transform = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.RandomCrop(size=size),
-                torchvision.transforms.ToTensor(),
-            ]
-        )
-
-    def __call__(self, x):
-        return self.train_transform(x)
+import torch
+from torch.utils.data import Dataset
+from RandomCropTransformer import RandomCropTransformer
 
 
 class PredictExifDataset(Dataset):
-    def __init__(self, csv_file, root_dir, replica, img_size=128):
+    """
+    Dataset for PredictExifModel
+    """
+
+    def __init__(self, csv_file, root_dir, replica, patch_size):
         self.exif_info = pd.read_csv(csv_file)
         self.root_dir = root_dir
-        self.transform = TransformsSimCLR(img_size)
+        self.transform = RandomCropTransformer(patch_size)
         self.replica = replica
+
         self.patches = []
         self.exifs = []
         length = range(len(self.exif_info))
-        for r in range (0,self.replica):
+        for r in range(0, self.replica):
             for i in length:
                 img_name = os.path.join(self.root_dir, self.exif_info.iloc[i, 0])
                 self.patches.append(self.transform(Image.open(img_name).convert('RGB')))

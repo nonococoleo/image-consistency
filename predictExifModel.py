@@ -1,13 +1,17 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class PredictExifModel(nn.Module):
-    def __init__(self, encoder, n_features, middle_dim, labels, partitions):
+    """
+    Prediction model
+    """
+
+    def __init__(self, encoder, n_features, labels, partitions):
         super(PredictExifModel, self).__init__()
 
         self.encoder = encoder
+        middle_dim = 200
         self.projector = nn.Sequential(
             nn.Linear(n_features, middle_dim),
             nn.ReLU(),

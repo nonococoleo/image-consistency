@@ -1,9 +1,14 @@
-from compareExifModel import CompareExifModel
-from compareExifDataset import CompareExifDataset
 from utils import *
+from compareExifDataset import CompareExifDataset
 
 
 def collate_fn(batch):
+    """
+    collate function for compare exif dataset
+    :param batch: data batch
+    :return: organized data
+    """
+
     images_a = []
     images_b = []
     labels = []
@@ -15,6 +20,16 @@ def collate_fn(batch):
 
 
 def train(device, loader, model, criterion, optimizer):
+    """
+    train the model for one epoch
+    :param device: device type
+    :param loader: dataloader
+    :param model: the model
+    :param criterion: loss function
+    :param optimizer: the optimizer
+    :return: training loss
+    """
+
     loss_epoch = 0
     model.train()
     for (step, ((x, y), label)) in enumerate(loader):
@@ -38,6 +53,15 @@ def train(device, loader, model, criterion, optimizer):
 
 
 def test(device, loader, model, criterion):
+    """
+    test the model for one epoch
+    :param device: device type
+    :param loader: dataloader
+    :param model: the model
+    :param criterion: loss function
+    :return: testing loss
+    """
+
     loss_epoch = 0
     model.eval()
     for (step, ((x, y), label)) in enumerate(loader):
@@ -61,7 +85,8 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
 
-    train_dataset = CompareExifDataset("datasets/exif/train.csv", "datasets/exif/images", 8192, 128)
+    train_dataset = CompareExifDataset("datasets/exif/train.csv", "datasets/exif/images", num_pairs=8192,
+                                       patch_size=128)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         shuffle=True,
@@ -72,7 +97,7 @@ if __name__ == '__main__':
     )
 
     start_epoch = 1
-    model_folder = "exif_model"
+    model_folder = "feature_model"
     model_path = os.path.join(model_folder, "checkpoint_{}.tar".format(start_epoch - 1))
     encoder = get_resnet('resnet50', pretrained=True)
     n_features = encoder.fc.out_features  # get dimensions of fc layer
@@ -84,19 +109,19 @@ if __name__ == '__main__':
     criterion = torch.nn.BCELoss()
 
     epochs = 300
-    for epoch in range(start_epoch, epochs+1):
+    for epoch in range(start_epoch, epochs + 1):
         lr = optimizer.param_groups[0]["lr"]
         loss_epoch = train(device, train_loader, model, criterion, optimizer)
 
         # save every 10 epochs
         if epoch % 10 == 0:
-            save_model(model_folder, model, epoch)
+            save_model(model, model_folder, epoch)
 
         print(f"Epoch [{epoch}/{epochs}]\t Loss: {loss_epoch / len(train_loader)}\t lr: {round(lr, 5)}", flush=True)
 
     print("finish training")
 
-    test_dataset = CompareExifDataset("datasets/exif/test.csv", "datasets/exif/images", 2048)
+    test_dataset = CompareExifDataset("datasets/exif/test.csv", "datasets/exif/images", num_pairs=2048, patch_size=128)
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         shuffle=True,
