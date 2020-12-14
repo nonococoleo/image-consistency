@@ -1,17 +1,29 @@
-# Image Consistency
+# Detecting Sliced Images
 
 ## Environment
 - Python 3.8
 
 ## Models
-### Feature Model
-The Feature Model encodes image patches into a feature vector for further steps.
-#### Comparison Model
-The Comparison Model takes two patches and output a feature vector indicates their similarity.
-#### Prediction Model
-The Prediction Model takes one patch and outputs a one-dimensional vector. A feature vector between two patches can be calculated by comparing the corresponding output vectors.
-### Consistency Model
-The Consistency Model depends on the feature vector and gives a Consistency score of two patches.
+#### EXIF based detection:
+
+Predicts the EXIF information of patches first. Then use this information to tell whether the image is sliced.
+
+- ##### Feature models (extract features at the first stage)
+
+  Feature models encode image patches into a feature vector which is then passed to the consistency model.
+  ###### Comparison model
+  - The Comparison model takes two patches and predicts a boolean feature vector. This features vector measure whether these two patches have the same value on each EXIF field.
+
+  ###### Prediction model
+  - The Prediction model takes one patch and predicts the value for each EXIF field.
+
+- ##### Consistency model (derive consistency score at the second stage)
+
+  The Consistency model takes the feature vector from the first stage and converts it to a consistency score. This score measure the possibility that these two patches come from the same image.
+
+#### Direct detection:
+
+Directly predict whether the image is sliced and where the sliced part is located.
 
 ## DataSet
 ### Image

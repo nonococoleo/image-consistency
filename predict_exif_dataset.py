@@ -15,25 +15,16 @@ class PredictExifDataset(Dataset):
         self.exif_info = pd.read_csv(csv_file)
         self.root_dir = root_dir
         self.transform = RandomCropTransformer(patch_size)
-        self.replica = replica
-
-        self.patches = []
-        self.exifs = []
-        length = range(len(self.exif_info))
-        for r in range(0, self.replica):
-            for i in length:
-                img_name = os.path.join(self.root_dir, self.exif_info.iloc[i, 0])
-                self.patches.append(self.transform(Image.open(img_name).convert('RGB')))
-                self.exifs.append(torch.tensor(self.exif_info.iloc[i, 1:]))
 
     def __len__(self):
-        return len(self.exif_info) * self.replica
+        return len(self.exif_info)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        patch = self.patches[idx]
-        exif = self.exifs[idx]
+        img_name = os.path.join(self.root_dir, self.exif_info.iloc[idx, 0])
+        patch = self.transform(Image.open(img_name).convert('RGB'))
+        exif = torch.tensor(self.exif_info.iloc[idx, 1:])
 
         return patch, exif
