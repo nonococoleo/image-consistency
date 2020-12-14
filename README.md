@@ -28,7 +28,7 @@ python3 extract_exif.py
 ### Feature Model
 Run the train_comparsion or train_prediction script to train the corresponding model.
 ``` shell
-python3 train_comparsion.py
+python3 train_comparison.py
 python3 train_prediction.py
 ```
 ### Consistency Model
@@ -40,5 +40,5 @@ python3 train_consistency.py
 ## Evaluating
 Run the evaluation script to get the heatmap about the overall consistency scores of different areas in the given image.
 ``` shell
-python3 evaluation.py
+python3 test_consistency.py
 ```
