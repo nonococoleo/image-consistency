@@ -3,7 +3,7 @@ import pandas as pd
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
-from RandomCropTransformer import RandomCropTransformer
+from random_crop_transformer import RandomCropTransformer
 
 
 class PredictExifDataset(Dataset):

@@ -18,7 +18,7 @@ class CompareExifModel(nn.Module):
             nn.ReLU(),
             nn.Linear(self.n_features, 40 * projection_dim, bias=False),
             nn.ReLU(),
-            nn.Linear(40 * projection_dim, 10*projection_dim, bias=False),
+            nn.Linear(40 * projection_dim, 10 * projection_dim, bias=False),
             nn.ReLU(),
             nn.Linear(10 * projection_dim, projection_dim, bias=False),
         )

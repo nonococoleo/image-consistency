@@ -1,21 +1,22 @@
-from utils import *
-from predictExifModel import PredictExifModel
-from predictExifDataset import PredictExifDataset
+from utilities import *
+from compare_exif_dataset import CompareExifDataset
 
 
 def collate_fn(batch):
     """
-    collate function for predict feature dataset
+    collate function for compare exif dataset
     :param batch: data batch
     :return: organized data
     """
 
-    images = []
+    images_a = []
+    images_b = []
     labels = []
-    for i, l in batch:
-        images.append(i)
-        labels.append(l)
-    return torch.stack(images), torch.stack(labels)
+    for i in batch:
+        images_a.append(i['image'][0])
+        images_b.append(i['image'][1])
+        labels.append(i['label'])
+    return (torch.stack(images_a), torch.stack(images_b)), torch.stack(labels)
 
 
 def train(device, loader, model, criterion, optimizer):
@@ -31,20 +32,21 @@ def train(device, loader, model, criterion, optimizer):
 
     loss_epoch = 0
     model.train()
-    for (step, (image, label)) in enumerate(loader):
+    for (step, ((x, y), label)) in enumerate(loader):
         optimizer.zero_grad()
 
-        image = image.to(device)
+        x = x.to(device)
+        y = y.to(device)
         label = label.to(device)
 
-        output = model(image)
+        output = model(x, y)
         loss = criterion(output, label)
 
         loss.backward()
         optimizer.step()
 
         loss_epoch += loss.item()
-        if step % 20 == 0:
+        if step % 50 == 0:
             print(f"Step [{step}/{len(loader)}]\t Loss: {loss.item()}", flush=True)
 
     return loss_epoch
@@ -83,7 +85,8 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
 
-    train_dataset = PredictExifDataset("datasets/exif/train.csv", "datasets/exif/images", replica=10, patch_size=128)
+    train_dataset = CompareExifDataset("datasets/exif/train.csv", "datasets/exif/images", num_pairs=8192,
+                                       patch_size=128)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         shuffle=True,
@@ -99,13 +102,13 @@ if __name__ == '__main__':
     encoder = get_resnet('resnet50', pretrained=True)
     n_features = encoder.fc.out_features  # get dimensions of fc layer
 
-    model = PredictExifModel(encoder, n_features, labels=6, partitions=10)
-    # model.load_state_dict(torch.load(model_path, map_location=device))
+    model = CompareExifModel(encoder, n_features, 6)
+    #    model.load_state_dict(torch.load(model_path, map_location=device))
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=3e-5)
-    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
+    criterion = torch.nn.BCELoss()
 
-    epochs = 500
+    epochs = 300
     for epoch in range(start_epoch, epochs + 1):
         lr = optimizer.param_groups[0]["lr"]
         loss_epoch = train(device, train_loader, model, criterion, optimizer)
@@ -118,7 +121,7 @@ if __name__ == '__main__':
 
     print("finish training")
 
-    test_dataset = PredictExifDataset("datasets/exif/test.csv", "datasets/exif/images", replica=1, patch_size=128)
+    test_dataset = CompareExifDataset("datasets/exif/test.csv", "datasets/exif/images", num_pairs=2048, patch_size=128)
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         shuffle=True,

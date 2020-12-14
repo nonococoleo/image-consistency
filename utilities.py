@@ -2,8 +2,8 @@ import os
 import torch
 import torchvision
 import numpy as np
-from compareExifModel import CompareExifModel
-from predictExifModel import PredictExifModel
+from compare_exif_model import CompareExifModel
+from predict_exif_model import PredictExifModel
 
 
 def get_resnet(name, pretrained=False):

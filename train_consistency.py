@@ -1,7 +1,7 @@
-from utils import *
+from utilities import *
 import torch.nn as nn
-from featureModel import ConsistencyModel
-from featureDataset import FeatureDataset
+from consistency_model import ConsistencyModel
+from feature_dataset import FeatureDataset
 
 
 def collate_fn(batch):

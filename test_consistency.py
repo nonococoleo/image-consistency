@@ -1,6 +1,6 @@
-from utils import *
+from utilities import *
 from PIL import Image
-from featureModel import ConsistencyModel
+from consistency_model import ConsistencyModel
 
 
 def evaluate(device, feature_model, consistency_model, image, size, threshold):
