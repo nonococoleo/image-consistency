@@ -46,20 +46,20 @@ python3 extract_exif.py
   Run the train_comparsion or train_prediction script to train the corresponding model.	
 
 ``` shell
-	python3 train_comparison.py
-	python3 train_prediction.py
+python3 train_comparison.py
+python3 train_prediction.py
 ```
 - ##### Consistency Model
+  Run the train_consistency script to train the Consistency Model.
 
-​	Run the train_consistency script to train the Consistency Model.
 ``` shell
-	python3 train_consistency.py
+python3 train_consistency.py
 ```
 
 #### Direct approach:
 
 ```shell
-	python3 train_direct.py
+python3 train_direct.py
 ```
 
 ## Evaluating
