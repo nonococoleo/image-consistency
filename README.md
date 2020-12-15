@@ -23,7 +23,7 @@ Predicts the EXIF information of patches first. Then use this information to tel
 
   The Consistency model takes the feature vector from the first stage and converts it to a consistency score. This score measure the possibility that these two patches come from the same image.
 
-#### Direct approach:
+#### Mask based approach:
 
 Directly predict whether the image is sliced and where the sliced part is located.
 
@@ -56,7 +56,7 @@ python3 train_prediction.py
 python3 train_consistency.py
 ```
 
-#### Direct approach:
+#### Mask based approach:
 
 ```shell
 python3 train_direct.py
@@ -72,7 +72,7 @@ Run the evaluation script to get the heatmap about the overall consistency score
 python3 test_consistency.py
 ```
 
-#### Direct approach:
+#### Mask based approach:
 
 ```shell
 python3 test_direct.py
