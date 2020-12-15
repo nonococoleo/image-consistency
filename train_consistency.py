@@ -110,5 +110,4 @@ if __name__ == '__main__':
         if epoch % 10 == 0:
             save_model(consistency_model, consistency_model_folder, epoch)
 
-        print(f"Epoch [{epoch}/{logistic_epochs}]\t Loss: {loss_epoch / len(train_loader)}\t lr: {round(lr, 5)}",
-              flush=True)
+        print(f"Epoch [{epoch}/{logistic_epochs}]\t Loss: {loss_epoch / len(train_loader)}\t lr: {round(lr, 5)}", flush=True)

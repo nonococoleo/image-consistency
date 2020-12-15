@@ -1,10 +1,10 @@
+import os
 import random
-import torch
-from torch.utils.data import Dataset
+import numpy as np
 from PIL import Image
 import torchvision
-import os
-import numpy as np
+from torch.utils.data import Dataset
+
 
 class DirectDataset(Dataset):
     def __init__(self, root_dir, size=400):

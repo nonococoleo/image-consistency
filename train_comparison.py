@@ -85,8 +85,7 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
 
-    train_dataset = CompareExifDataset("datasets/exif/train.csv", "datasets/exif/images", num_pairs=8192,
-                                       patch_size=128)
+    train_dataset = CompareExifDataset("datasets/exif/train.csv", "datasets/exif/images", num_pairs=8192, patch_size=128)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         shuffle=True,
